@@ -2,8 +2,6 @@ from rest_framework import serializers
 from django.db import transaction
 from main.models import Grades, School, Student, CustomUser
 
-
-
 class Schoolserializer(serializers.Serializer):
     username = serializers.CharField(max_length=100)
     password = serializers.CharField(max_length=100, style={'input_type': 'password'},  write_only= True)
@@ -11,7 +9,8 @@ class Schoolserializer(serializers.Serializer):
     name =  serializers.CharField(max_length=100)
     city = serializers.CharField(max_length=100)
     pincode = serializers.CharField(max_length=6)
-    
+
+    @transaction.atomic
     def create(self, validated_data):
         user = CustomUser.objects.create(username = validated_data['username'], 
                                          email = validated_data['email'],
@@ -24,10 +23,7 @@ class Schoolserializer(serializers.Serializer):
         return validated_data
 
 
-
-
 def not_a_grade(value):
-
     try:
         Grades.objects.get(grade = value)
         return value
@@ -55,14 +51,12 @@ class StudentSerializer(serializers.Serializer):
         return validated_data
 
 
-
 class BaseStudentSerializer(serializers.ModelSerializer):
     school = serializers.StringRelatedField()
     user = serializers.StringRelatedField()
     class Meta:
         model = Student
         fields = '__all__'
-        
 
 
 class BaseSchoolSerializer(serializers.ModelSerializer):
