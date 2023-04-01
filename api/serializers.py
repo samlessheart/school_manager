@@ -1,49 +1,78 @@
 from rest_framework import serializers
-
-from main.models import School, Student, CustomUser
-
-
-class SchoolSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()
-    class Meta:
-        model = School
-        # fields = '['points', 'user']'
-        fields = '__all__'
+from django.db import transaction
+from main.models import Grades, School, Student, CustomUser
 
 
-class StudentSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()
-    class Meta:
-        model = School
-        # fields = '['points', 'user']'
-        fields = '__all__'
 
-
-class RegisterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ('id', 'username', 'email', 'password', 'is_school')
-        extra_kwargs = {'password': {'write_only': True}, 'is_school': {'read_only':True}}
-
-    def create(self, validated_data):
-        user = CustomUser.objects.create_user(validated_data['username'], 
-                                              validated_data['email'], validated_data['password'], is_school = True)
-        return user
+class Schoolserializer(serializers.Serializer):
+    username = serializers.CharField(max_length=100)
+    password = serializers.CharField(max_length=100, style={'input_type': 'password'},  write_only= True)
+    email = serializers.EmailField()
+    name =  serializers.CharField(max_length=100)
+    city = serializers.CharField(max_length=100)
+    pincode = serializers.CharField(max_length=6)
     
-    def update(self, instance, validated_data):
-        instance.set_password = validated_data('password', instance.password )
-        instance.save()
-        return instance
-
-
-class StudentRegisterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ('id', 'username', 'email', 'password')
-        extra_kwargs = {'password': {'write_only': True}}
-
     def create(self, validated_data):
-        user = CustomUser.objects.create_user(validated_data['username'], 
-                                              validated_data['email'], validated_data['password'], is_student = True)
+        user = CustomUser.objects.create(username = validated_data['username'], 
+                                         email = validated_data['email'],
+                                         password =validated_data['password'], is_school = True )
+        user.set_password(validated_data['password'])
+        school = School.objects.create(name = validated_data['name'], city = validated_data['city'],                                        
+                                       pincode = validated_data['pincode'],user = user )
+        user.save()
+        school.save()
+        return validated_data
 
-        return user
+
+
+
+def not_a_grade(value):
+
+    try:
+        Grades.objects.get(grade = value)
+        return value
+    except:
+        raise serializers.ValidationError('This grade is not there yet')
+
+
+class StudentSerializer(serializers.Serializer):    
+    username = serializers.CharField(max_length=100)
+    password = serializers.CharField(max_length=100, style={'input_type': 'password'},  write_only= True)
+    name =  serializers.CharField(max_length=100)
+    grade = serializers.IntegerField(validators = [not_a_grade])
+    school = serializers.StringRelatedField()
+    
+    @transaction.atomic
+    def create(self, validated_data):
+        
+        user = CustomUser.objects.create(username = validated_data['username'], 
+                                        password =validated_data['password'] , is_student = True)
+        user.set_password(validated_data['password'])
+        student = Student.objects.create(name = validated_data['name'], grade = Grades.objects.get(grade =validated_data['grade']), 
+                                user = user, school = validated_data['school']    )
+        user.save()
+        student.save()
+        return validated_data
+
+
+
+class BaseStudentSerializer(serializers.ModelSerializer):
+    school = serializers.StringRelatedField()
+    user = serializers.StringRelatedField()
+    class Meta:
+        model = Student
+        fields = '__all__'
+        
+
+
+class BaseSchoolSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+    class Meta:
+        model = School
+        fields = '__all__'
+
+
+class GradeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Grades
+        fields = '__all__'

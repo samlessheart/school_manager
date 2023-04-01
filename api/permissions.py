@@ -7,3 +7,9 @@ class IsSchool(permissions.BasePermission):
         else :
             return request.user.is_school
         
+class Isowner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):        
+        if request.user.is_school:
+            return obj.school == request.user.school
+        elif request.user.is_student:
+            return obj == request.user.student 
