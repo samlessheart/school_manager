@@ -13,3 +13,12 @@ class Isowner(permissions.BasePermission):
             return obj.school == request.user.school
         elif request.user.is_student:
             return obj == request.user.student 
+        
+
+
+class IsStudent(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        else :
+            return request.user.is_student
