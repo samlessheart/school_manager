@@ -21,3 +21,8 @@ class IsStudent(permissions.BasePermission):
             return True
         else :
             return request.user.is_student
+
+class IsStafforSchool(permissions.BasePermission):
+    def has_permission(self, request, view):
+        
+        return request.user.is_school or request.user.is_staff
