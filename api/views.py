@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import generics, permissions, status
 from api.serializers import  BaseSchoolSerializer, Schoolserializer, StudentSerializer, BaseStudentSerializer, GradeSerializer
 from rest_framework.response import Response
-from .permissions import IsSchool, IsStudent, Isowner
+from .permissions import IsSchool, IsStudent, Isowner, IsStafforSchool
 from main.models import CustomUser, Student, School
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import api_view, permission_classes
@@ -30,14 +30,14 @@ class AddStudentAPI(generics.GenericAPIView):
 
 class Students(generics.GenericAPIView):
     serializer_class = BaseStudentSerializer
-    permission_classes = [ IsAuthenticated]
+    permission_classes = [ IsAuthenticated, IsStafforSchool]
     def get_queryset(self):
         grade = self.request.query_params.get('grade', None)
         school = self.request.query_params.get('school', None)        
         queryset = Student.objects.all()
         if self.request.user.is_school:
             queryset = queryset.filter(school = self.request.user.school)
-        elif self.request.user.IsAdminUser and school is not None:
+        elif self.request.user.is_staff and school is not None:
             queryset.filter(school = school)
 
         if grade is not None:
